@@ -89,6 +89,8 @@ src/style - official.css
 /e2e/specs/.test-results/
 /e2e/playwright-report/
 /playwright/.cache/
+/test-results/
+/playwright-report/
 .DS_Store
 *.code-workspace
 .idx

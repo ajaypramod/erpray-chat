@@ -4,6 +4,7 @@ import { useRecoilState } from 'recoil';
 import { Dropdown, ThemeContext } from '@librechat/client';
 import ArchivedChats from './ArchivedChats';
 import ToggleSwitch from '../ToggleSwitch';
+import AboutErpray from '~/erpray/AboutErpray'; // ERPRAY-PATCH: in-app MIT credit (AGENT_BUILD_INSTRUCTIONS.md §1.1)
 import { useLocalize } from '~/hooks';
 import store from '~/store';
 
@@ -199,6 +200,7 @@ function General() {
       <div className="pb-3">
         <ArchivedChats />
       </div>
+      <AboutErpray />
     </div>
   );
 }
