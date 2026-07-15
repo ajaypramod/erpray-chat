@@ -20,6 +20,8 @@ import MarkdownErrorBoundary from './MarkdownErrorBoundary';
 import { langSubset, preprocessLaTeX } from '~/utils';
 import { unicodeCitation } from '~/components/Web';
 import { code, a, p, img } from './MarkdownComponents';
+// ERPRAY-PATCH
+import { parseChips, FollowupChips } from '~/erpray/FollowupChips';
 import store from '~/store';
 
 type TContentProps = {
@@ -37,6 +39,15 @@ const Markdown = memo(function Markdown({ content = '', isLatestMessage }: TCont
     }
     return LaTeXParsing ? preprocessLaTeX(content) : content;
   }, [content, LaTeXParsing, isInitializing]);
+
+  // ERPRAY-PATCH: strip the connector's trailing "**Next:** `chip` · `chip`"
+  // line out of the markdown BEFORE it reaches ReactMarkdown — otherwise it
+  // renders as literal bold text and un-clickable inline code spans. The chips
+  // render as real buttons via <FollowupChips> below instead.
+  const { content: contentSansChips, chips } = useMemo(
+    () => parseChips(currentContent),
+    [currentContent],
+  );
 
   const rehypePlugins = useMemo(
     () => [
@@ -99,8 +110,10 @@ const Markdown = memo(function Markdown({ content = '', isLatestMessage }: TCont
               }
             }
           >
-            {currentContent}
+            {contentSansChips}
           </ReactMarkdown>
+          {/* ERPRAY-PATCH: real, clickable buttons — never raw "**Next:** `x`" text. */}
+          <FollowupChips chips={chips} />
         </CodeBlockProvider>
       </ArtifactProvider>
     </MarkdownErrorBoundary>
