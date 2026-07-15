@@ -1,0 +1,114 @@
+/* Geist, self-hosted via @fontsource (SIL OFL-1.1, permissive) — bundled by Vite
+ * at build time, never fetched from a CDN. BRAND_GUIDE.md §3: headlines 800-900,
+ * body 400-500 for Geist Sans; Geist Mono for every number/query/audit line.
+ * Only the weights actually used are imported, to keep the bundle lean. */
+@import '@fontsource/geist-sans/400.css';
+@import '@fontsource/geist-sans/500.css';
+@import '@fontsource/geist-sans/600.css';
+@import '@fontsource/geist-sans/800.css';
+@import '@fontsource/geist-mono/400.css';
+@import '@fontsource/geist-mono/500.css';
+
+/* ERPRAY-PATCH: new file. Ink & Ray (BRAND_GUIDE.md §2).
+ *
+ * Imported AFTER style.css (see main.jsx), so these rules win the cascade
+ * without needing !important anywhere — the one-line import is the entire patch
+ * surface in the entry file; every actual color decision lives here.
+ *
+ * WHY OVERRIDE THE SEMANTIC TOKENS DIRECTLY, NOT THE SHARED --gray-* SCALE:
+ * style.css's `.dark` block builds its surface/text/border tokens from a shared
+ * `--gray-50`..`--gray-900` ramp that BOTH light and dark mode read from at
+ * different steps. Remapping that shared ramp to Ink & Ray would silently drag
+ * light mode along with it. BRAND_GUIDE.md is explicit that ink-on-dark is the
+ * default everywhere public-facing and light mode is for docs/email only, so
+ * this file touches ONLY the `.dark` semantic tokens, with literal hex values —
+ * light mode is left alone rather than half-fixed.
+ *
+ * The `--brand-purple` token doubles as the send-button / primary-accent color
+ * throughout the app (it is NOT a decorative variable) — that is the ONE ray
+ * element per view rule (BRAND_GUIDE.md §7.2) landing for free on every screen
+ * that already uses it.
+ */
+
+.dark {
+  /* Backgrounds */
+  --surface-primary: #06080f;       /* Ink */
+  --surface-primary-alt: #0c111e;   /* Panel */
+  --surface-primary-contrast: #121a2e; /* Raise */
+  --surface-secondary: #0c111e;
+  --surface-secondary-alt: #121a2e;
+  --surface-tertiary: #121a2e;
+  --surface-tertiary-alt: #121a2e;
+  --surface-dialog: #0c111e;
+  --surface-chat: #06080f;
+  --presentation: #0c111e;
+
+  /* Text */
+  --text-primary: #edf1f7;    /* Snow */
+  --text-secondary: #94a1b8;  /* Mist */
+  --text-secondary-alt: #94a1b8;
+  --text-tertiary: #5d6b84;   /* Dim */
+  --text-warning: #ffd34d;
+  --text-destructive: #f87171; /* Risk */
+
+  /* Borders */
+  --border-light: #1d2842;   /* Edge */
+  --border-medium: #1d2842;
+  --border-medium-alt: #1d2842;
+  --border-heavy: #2a3654;
+  --border-xheavy: #384772;
+  --border-destructive: #f87171;
+
+  /* Interactive surfaces */
+  --surface-hover: #121a2e;
+  --surface-hover-alt: #17203a;
+  --surface-active: #17203a;
+  --surface-active-alt: #1d2842;
+  --header-primary: #0c111e;
+  --header-hover: #121a2e;
+  --header-button-hover: #121a2e;
+  --ring-primary: #f5a623;
+
+  /* THE RAY. This is the primary-action color throughout the app (send button,
+   * primary buttons, focus accents) — one gradient anchor per view, exactly as
+   * the brand guide asks, landing wherever this token already flows. */
+  --brand-purple: #f5a623;
+  --surface-submit: #f5a623;
+  --surface-submit-hover: #e0941d;
+  --surface-destructive: #b91c1c;
+  --surface-destructive-hover: #991b1b;
+
+  /* shadcn/tailwind HSL tokens (Tailwind's own theme layer, separate from the
+   * --surface-*/--text-* tokens above, but ink-on-snow needs to match here too
+   * or dialogs/menus built purely on these will stay the upstream near-black). */
+  --background: 222 47% 4%;   /* ~#06080F */
+  --foreground: 220 26% 95%;  /* ~#EDF1F7 */
+  --card: 222 39% 8%;         /* ~#0C111E */
+  --card-foreground: 220 26% 95%;
+  --primary: 33 90% 56%;      /* ~#F5A623 */
+  --primary-foreground: 222 47% 4%;
+  --secondary: 222 33% 12%;   /* ~#121A2E */
+  --secondary-foreground: 220 26% 95%;
+  --muted: 222 33% 12%;
+  --muted-foreground: 216 15% 60%; /* ~#94A1B8 */
+  --accent: 222 33% 12%;
+  --accent-foreground: 220 26% 95%;
+  --destructive: 0 91% 71%;   /* ~#F87171 */
+  --destructive-foreground: 222 47% 4%;
+  --border: 222 36% 20%;      /* ~#1D2842 */
+  --input: 222 36% 20%;
+  --ring: 33 90% 56%;
+}
+
+/* Geist, self-hosted via @fontsource — no CDN, bundled at build time. Overrides
+ * Tailwind's default sans/mono stack for the whole app, per BRAND_GUIDE.md §3:
+ * UI/headlines in Geist Sans, every number/query/audit line in Geist Mono. */
+html {
+  font-family: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
+}
+code,
+pre,
+kbd,
+.font-mono {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+}

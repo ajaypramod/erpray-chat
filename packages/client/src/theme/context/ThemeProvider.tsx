@@ -59,10 +59,22 @@ const isValidThemeColors = (value: unknown): value is IThemeRGB => {
 };
 
 /**
- * Get initial theme from localStorage or default to 'system'
+ * Get initial theme from localStorage, or default to 'dark'.
+ *
+ * ERPRAY-PATCH: upstream defaults an unset preference to 'system', which on a
+ * light-OS machine renders light. BRAND_GUIDE.md §7.1: "Ink background is the
+ * default everywhere public-facing" — a first-time visitor should see the brand,
+ * not their OS's color scheme. A user who explicitly picks 'system' from the
+ * theme switcher still gets exactly that; this only changes what happens before
+ * anyone has chosen anything.
+ *
+ * Must stay in sync with the identical default in client/index.html's inline
+ * pre-paint script (see PATCHES.md) — that script paints before React mounts,
+ * so if the two defaults ever disagree, a first-time visitor sees one background
+ * flash into another.
  */
 const getInitialTheme = (): string => {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'dark';
   try {
     const stored = localStorage.getItem(THEME_KEY);
     if (stored && ['light', 'dark', 'system'].includes(stored)) {
@@ -71,7 +83,7 @@ const getInitialTheme = (): string => {
   } catch {
     // localStorage not available
   }
-  return 'system';
+  return 'dark';
 };
 
 /**

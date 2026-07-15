@@ -3,12 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <base href="/" />
-    <meta name="theme-color" content="#171717" />
+    <!-- ERPRAY-PATCH: Ink (#06080F), not upstream's near-black #171717 —
+         BRAND_GUIDE.md §2. This is what a mobile browser chrome/status bar tints. -->
+    <meta name="theme-color" content="#06080F" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="description" content="LibreChat - An open source chat application with support for multiple AI models" />
-    <title>LibreChat</title>
+    <!-- ERPRAY-PATCH -->
+    <meta name="description" content="Ask your ERP anything. ERPray is a conversational AI operator for Oracle NetSuite — every answer is validated against your account's real schema before it runs." />
+    <!-- ERPRAY-PATCH: overridden again by Startup.tsx once startupConfig loads
+         (appTitle), but THIS is what shows during the pre-JS paint and in a
+         bookmark taken before the app finishes loading. -->
+    <title>ERPray</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon-180x180.png" />
@@ -26,15 +33,21 @@
       const loadingContainerStyle = document.createElement('style');
       let backgroundColor;
 
+      // ERPRAY-PATCH: Ink (#06080F), and the no-stored-preference default is now
+      // DARK rather than upstream's light — BRAND_GUIDE.md §7.1 ("ink background
+      // is the default everywhere public-facing"), matched by the same default in
+      // packages/client/src/theme/context/ThemeProvider.tsx (see PATCHES.md). This
+      // script paints BEFORE React mounts; if the two defaults ever disagree, a
+      // first-time visitor sees one background flash into another.
       if (theme === 'dark') {
-        backgroundColor = '#0d0d0d';
+        backgroundColor = '#06080F';
       } else if (theme === 'light') {
         backgroundColor = '#ffffff';
       } else if (theme === 'system') {
         const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        backgroundColor = prefersDarkScheme ? '#0d0d0d' : '#ffffff';
+        backgroundColor = prefersDarkScheme ? '#06080F' : '#ffffff';
       } else {
-        backgroundColor = '#ffffff';
+        backgroundColor = '#06080F';
       }
 
       loadingContainerStyle.innerHTML = `

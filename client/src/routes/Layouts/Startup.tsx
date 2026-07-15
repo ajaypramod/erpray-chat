@@ -44,7 +44,8 @@ export default function StartupLayout({ isAuthenticated }: { isAuthenticated?: b
   }, [isAuthenticated, navigate, data]);
 
   useEffect(() => {
-    document.title = startupConfig?.appTitle || 'LibreChat';
+    // ERPRAY-PATCH
+    document.title = startupConfig?.appTitle || 'ERPray';
   }, [startupConfig?.appTitle]);
 
   useEffect(() => {

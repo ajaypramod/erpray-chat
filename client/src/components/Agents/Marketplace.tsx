@@ -57,7 +57,8 @@ const AgentMarketplace: React.FC<AgentMarketplaceProps> = ({ className = '' }) =
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Set page title
-  useDocumentTitle(`${localize('com_agents_marketplace')} | LibreChat`);
+  // ERPRAY-PATCH
+  useDocumentTitle(`${localize('com_agents_marketplace')} | ERPray`);
 
   // Ensure right sidebar is always visible in marketplace
   useEffect(() => {

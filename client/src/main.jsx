@@ -4,6 +4,10 @@ import './locales/i18n';
 import App from './App';
 import './style.css';
 import './mobile.css';
+// ERPRAY-PATCH: loaded AFTER style.css so its rules win same-specificity ties
+// without needing !important anywhere — see the file header for why the color
+// tokens are overridden here rather than in style.css directly.
+import './erpray/theme.css';
 import { ApiErrorBoundaryProvider } from './hooks/ApiErrorBoundaryContext';
 import 'katex/dist/katex.min.css';
 import 'katex/dist/contrib/copy-tex.js';

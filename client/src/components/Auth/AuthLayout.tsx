@@ -6,6 +6,8 @@ import SocialLoginRender from './SocialLoginRender';
 import { BlinkAnimation } from './BlinkAnimation';
 import { Banner } from '../Banners';
 import Footer from './Footer';
+// ERPRAY-PATCH
+import { Wordmark, Tagline } from '~/erpray/Wordmark';
 
 function AuthLayout({
   children,
@@ -60,12 +62,19 @@ function AuthLayout({
     <div className="relative flex min-h-screen flex-col bg-white dark:bg-gray-900">
       <Banner />
       <BlinkAnimation active={isFetching}>
-        <div className="mt-6 h-10 w-full bg-cover">
-          <img
-            src="assets/logo.svg"
-            className="h-full w-full object-contain"
-            alt={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'LibreChat' })}
-          />
+        {/* ERPRAY-PATCH: the two-tone wordmark + tagline, replacing the plain
+            <img src="assets/logo.svg">. This is the FIRST thing every user sees —
+            BRAND_GUIDE.md §1.1 rule 7 calls tagline adjacency here out
+            specifically ("keeping it visually near the wordmark primes the ERP
+            parse before the eye hits 'ray'"), and rule 3 requires a first-mention
+            pronunciation cue in exactly this kind of introductory context. */}
+        <div
+          className="mt-6 flex w-full flex-col items-center gap-1.5"
+          role="img"
+          aria-label={localize('com_ui_logo', { 0: startupConfig?.appTitle ?? 'ERPray' })}
+        >
+          <Wordmark size={30} withMark />
+          <Tagline />
         </div>
       </BlinkAnimation>
       <DisplayError />
