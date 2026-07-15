@@ -67,10 +67,21 @@ module.exports = {
           400: '#999696',
           500: '#595959',
           600: '#424242',
-          700: '#2f2f2f',
-          800: '#212121',
-          850: '#171717',
-          900: '#0d0d0d',
+          // ERPRAY-PATCH: 700/800/850/900 -> Ink & Ray (BRAND_GUIDE.md §2),
+          // matching client/src/erpray/theme.css's .dark custom-property values.
+          //
+          // Found live: AuthLayout.tsx (and 13 other files) use the literal
+          // Tailwind class `dark:bg-gray-900`, not a semantic `bg-surface-primary`
+          // class — so overriding the CSS custom properties in theme.css alone
+          // left this Tailwind-native color scale untouched, and the rendered
+          // background was upstream's #0d0d0d, not our Ink #06080F. Barely
+          // perceptible as a screenshot (both are "near black"), but not
+          // actually on-brand. This is the ONE place both systems now agree,
+          // rather than patching 14+ component files individually.
+          700: '#1D2842', // Edge
+          800: '#0C111E', // Panel
+          850: '#0A0E1A', // between Panel and Ink
+          900: '#06080F', // Ink
         },
         green: {
           50: '#f1f9f7',

@@ -41,10 +41,18 @@ RUN \
 
 COPY --chown=node:node . .
 
+# ERPRAY-PATCH: `;` -> `&&`. With `;`, a FAILED `npm run frontend` (e.g. a bad
+# vite/postcss build) does not fail this RUN — the shell just moves on to
+# `npm prune` and `npm cache clean`, both of which succeed independently, so the
+# WHOLE layer's exit code is 0 (the last command's) and Docker CACHES it as
+# successful. We shipped exactly this: `theme.css` had a CSS syntax error, the
+# frontend build failed, and `docker compose up` reported "Built" and started a
+# container anyway — because the broken layer was cached as good. The runtime
+# crashed with `ENOENT: no such file or directory, open '/app/client/dist/index.html'`,
+# which is a much worse place to discover a build failure than the build log.
 RUN \
-    # React client build with configurable memory
-    NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" npm run frontend; \
-    npm prune --production; \
+    NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" npm run frontend && \
+    npm prune --production && \
     npm cache clean --force
 
 # Node API setup

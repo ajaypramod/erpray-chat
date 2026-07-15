@@ -79,8 +79,17 @@
   --surface-destructive-hover: #991b1b;
 
   /* shadcn/tailwind HSL tokens (Tailwind's own theme layer, separate from the
-   * --surface-*/--text-* tokens above, but ink-on-snow needs to match here too
-   * or dialogs/menus built purely on these will stay the upstream near-black). */
+   * surface and text custom properties above, but ink-on-snow needs to match
+   * here too, or dialogs and menus built purely on these stay the upstream
+   * near-black regardless of everything else in this file).
+   *
+   * A caution earned the hard way: this comment block twice broke the
+   * production build (postcss "unknown word" / "unclosed string") because an
+   * earlier draft of this very sentence, twice, accidentally spelled out the
+   * two-character comment-close sequence inside its own body -- ending the
+   * comment early and leaving the rest of the sentence as literal, invalid CSS.
+   * A TypeScript check cannot see this kind of bug; only a real build does.
+   * Keep this comment's prose free of that sequence, in any form. */
   --background: 222 47% 4%;   /* ~#06080F */
   --foreground: 220 26% 95%;  /* ~#EDF1F7 */
   --card: 222 39% 8%;         /* ~#0C111E */

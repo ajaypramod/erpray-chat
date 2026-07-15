@@ -10,6 +10,105 @@ Base: `v0.8.3` (`cfbe812d6`), forked from `danny-avila/LibreChat` (MIT).
 
 ---
 
+## Four build-time lessons, ALL found by actually running `docker compose build`
+
+None of these four would have been caught by `tsc --noEmit`, by the client's own
+`jest` suite, or by reading the diff carefully — each needed the real, full
+production build to actually run. That is the entire justification for standing
+up Docker locally rather than trusting typecheck + unit tests alone.
+
+**`tsc --noEmit` passing proves nothing about CSS.** `erpray/theme.css` shipped a
+comment containing the literal two-character comment-close sequence — TWICE, the
+second time while writing the comment explaining the FIRST occurrence — which
+closed the CSS comment early and left the rest of the sentence as invalid CSS. Every
+TypeScript typecheck in this repo passed cleanly throughout, because none of them
+parse `.css` files. Only a real `vite build` (which runs PostCSS) caught it, and
+only because it was actually run rather than assumed to follow from a green
+typecheck. **Verify with the actual parser** (`postcss.parse()`) before trusting a
+comment edit near punctuation-heavy prose, not just a regex guess at correctness.
+
+**The Dockerfile's `RUN a; b; c` masked a build failure as success.** Upstream's
+frontend-build `RUN` step chained commands with `;`, not `&&`. When `npm run
+frontend` (the vite build) failed, the shell moved on to `npm prune` and `npm cache
+clean` anyway — both succeeded independently, so the WHOLE layer's exit code was 0,
+and Docker **cached it as successful**. `docker compose up -d` reported `chat Built`
+and started a container that crashed at runtime (`ENOENT: .../client/dist/index.html`)
+— a much worse place to discover a build failure than the build log. Fixed to `&&`
+(see the edited-files table below). **If a docker build for this fork ever again
+reports success suspiciously fast, suspect the cache before the code.**
+
+**A new dependency can break the PWA build in a way no earlier commit could have.**
+Adding `vega` + `vega-lite` + `vega-embed` for the chart patch pushed the `vendor`
+bundle to 4.4 MB, over `vite-plugin-pwa`'s (already-raised, from Workbox's 2 MiB
+default) 4 MB precache limit — the build failed at the FINAL step, minutes in,
+with `Configure "workbox.maximumFileSizeToCacheInBytes"`. Raised to 6 MB
+(`client/vite.config.ts`) with headroom for the next dependency. **Any future
+patch that adds a real dependency should re-check this build step, not just its
+own typecheck** — a large enough addition anywhere in the app can trip a limit
+that has nothing to do with the code that added it.
+
+**The PWA manifest is a branding surface `Wordmark.tsx` cannot reach.** The
+install-prompt name, home-screen label, and splash-screen background come from
+`vite-plugin-pwa`'s `manifest` config in `client/vite.config.ts` — a build-time
+generated file, not the static `logo.svg`/`favicon.svg` patch #2 already fixed.
+It still said `name: 'LibreChat'`, `theme_color: '#009688'` (teal) until this
+patch. Fixed alongside the size-limit fix above, since both are in the same
+config block. **Not yet fixed**: `icon-192x192.png` and `maskable-icon.png`
+referenced by this manifest are still upstream's generic icons, not rasterized
+from our mark — lower priority than the text identity, since a wrong icon reads
+as "unbranded", not as "wrong brand", but worth closing out alongside a real
+maskable-icon design pass (the safe-zone padding a maskable icon needs is a
+genuine design task, not a quick rasterize).
+
+---
+
+## One runtime lesson, found by actually opening the app in a browser
+
+The four lessons above were all caught by running `docker compose build`. This
+one needed more: the build succeeded, the container ran, and the grid artifact
+still rendered wrong — because the four lessons above only prove the app
+*starts*, not that a specific message renders the way a user would see it.
+
+**The connector's artifact markdown was wrong in TWO successive ways, and unit
+tests stayed green through both**, because every test on the erpray-app side
+only asserted the markdown *string* looked right — none of them opened a
+browser. Version 1 was a bare ` ```html ` fence (no directive at all — renders
+as a plain syntax-highlighted code block). Version 2 fixed that to a real
+`:::artifact{...}` directive, but dropped the HTML in bare (no fence inside
+it) — LibreChat's own `useArtifacts.ts` parser expects an inner fence, so this
+STILL rendered as a raw code dump, not an opened Sandpack panel. The correct
+form, confirmed by a live Playwright run whose screenshot showed the actual
+Code/Preview split panel:
+
+```
+:::artifact{identifier="erpray-grid" type="text/html" title="Grid"}
+```html
+<html>...</html>
+```
+:::
+```
+
+This is entirely a connector-side fix (`packages/core/src/artifactDirective.ts`
+in erpray-app) — nothing in this repo needed to change to consume it correctly,
+since it's LibreChat's own existing parser doing the work. **Confirming it
+required running the real thing**: a network request to
+`*.sandpack-static-server.codesandbox.io` appeared for the first time only once
+the inner fence was added, which is what proved Sandpack had actually been
+invoked rather than just typechecked correctly.
+
+**Same run also settled AGENT_BUILD_INSTRUCTIONS.md §5.3's flagged
+sandbox-fetch question, definitively**: the Sandpack artifact panel is served
+from that CodeSandbox-hosted origin, not same-origin with the app — so
+`fetch()` from inside the artifact back to the connector fails with
+`TypeError: Failed to fetch`, observed live. The grid's `sandboxFallback` catch
+path exists for exactly this and is confirmed necessary, not defensive
+over-engineering for a hypothetical. **Any write-from-artifact interaction
+(grid cell edit → preview → confirm) must route through the chip/chat-command
+fallback — the in-artifact fetch will never reach the connector in this
+deployment shape.**
+
+---
+
 ## New files (no upstream conflict risk)
 
 | File | Purpose |
@@ -30,6 +129,9 @@ Base: `v0.8.3` (`cfbe812d6`), forked from `danny-avila/LibreChat` (MIT).
 | `client/src/main.jsx` | One import line: `./erpray/theme.css`, placed after `./style.css`. | The entire hook point for the color/font override — see `theme.css`'s own header for why it lives in a new file rather than editing `style.css` in place. |
 | `client/index.html` | Title, meta description, favicon links, `theme-color`, and the pre-paint loading-screen background color/default. | These render BEFORE React mounts — a patch that only touched the React layer would leave a LibreChat-branded flash on every cold load. |
 | `client/src/routes/Layouts/Startup.tsx`, `client/src/components/Agents/Marketplace.tsx` | `document.title` / page-title fallback strings, `'LibreChat'` → `'ERPray'`. | The only two places a hardcoded fallback name reaches the tab title once `startupConfig` has loaded. |
+| `Dockerfile` | The frontend-build `RUN` step: `a; b; c` → `a && b && c`. | Not a branding change — a build-hygiene fix. See "build-time lessons" above: with `;`, a failed `npm run frontend` was silently cached as a successful layer. |
+| `client/vite.config.ts` | `workbox.maximumFileSizeToCacheInBytes`: 4 MB → 6 MB. `manifest.name`/`short_name`/`theme_color`/`background_color`: `'LibreChat'`/teal → `'ERPray'`/Ink. | The vega dependency addition tripped the Workbox precache limit — a real build failure, not a style choice. The manifest fields are the PWA-install branding surface `Wordmark.tsx` cannot reach (it's build-time generated, not a static file). |
+| `client/tailwind.config.cjs` | `colors.gray.{700,800,850,900}`: LibreChat's own hardcoded scale → Ink values (`#1D2842`/`#0C111E`/`#0A0E1A`/`#06080F`). | Found live, not by reading code: the body background was STILL the wrong near-black after `theme.css`'s CSS-custom-property overrides were confirmed working, because the visible container uses a literal Tailwind class (`dark:bg-gray-900`), which resolves through Tailwind's OWN color scale in this file — a second, completely separate color system from `theme.css`'s `--surface-*` custom properties. Verified with a real screenshot: `rgb(6, 8, 15)` = exactly `#06080F` only after this fix. |
 | `client/src/components/Auth/AuthLayout.tsx` | Replaced the plain `<img src="assets/logo.svg">` login-page logo with `<Wordmark withMark /><Tagline />`. | The first screen every user ever sees. BRAND_GUIDE.md §1.1 rule 7 names exactly this kind of introductory placement as where tagline adjacency matters most. |
 | `packages/client/src/theme/context/ThemeProvider.tsx` | `getInitialTheme()`'s no-stored-preference fallback: `'system'` → `'dark'`. | BRAND_GUIDE.md §7.1: "Ink background is the default everywhere public-facing." Upstream's `'system'` default means a first-time visitor on a light-OS machine sees a light, un-branded app. A user who explicitly picks "system" from the switcher still gets exactly that — this only changes the very first paint. **Must stay in sync with the identical default in `client/index.html`'s inline script** (both are documented with a cross-reference comment) — that script paints before React mounts, so if the two ever disagree, a first-time visitor sees one background flash into another. |
 
@@ -68,10 +170,7 @@ All three: **BSD-3-Clause** — permissive, no license concern.
 
 ## Not yet done (see erpray-app/RESUME.md for the full remaining list)
 
-- `FollowupChips.tsx`
-- `librechat.yaml` wiring / titleModel guard
-- Artifact-iframe sandbox-fetch verification
 - The 5 role personas as LibreChat Agents; the skill library as Prompts
-- `customFooter` config value (server-side; `client/src/components/Chat/Footer.tsx`
-  already reads it, crediting LibreChat's MIT license — no code patch needed, only
-  a `librechat.yaml`/interface-config value, tracked under the librechat.yaml task)
+- `maskable-icon.png` / `icon-192x192.png` still upstream's generic PWA icons
+  (see the build-time-lessons section above — lower priority than the text
+  identity fix, needs a real safe-zone design pass, not a quick rasterize)
