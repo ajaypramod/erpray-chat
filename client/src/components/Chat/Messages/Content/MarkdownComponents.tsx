@@ -5,6 +5,9 @@ import { PermissionTypes, Permissions, apiBaseUrl } from 'librechat-data-provide
 import MermaidErrorBoundary from '~/components/Messages/Content/MermaidErrorBoundary';
 import CodeBlock from '~/components/Messages/Content/CodeBlock';
 import Mermaid from '~/components/Messages/Content/Mermaid';
+// ERPRAY-PATCH: the connector emits ```vega-lite fences (packages/core/src/charts.ts).
+// Routed exactly like `mermaid` below — same mechanism, new language tag.
+import VegaLiteChart from '~/components/Messages/Content/VegaLiteChart';
 import useHasAccess from '~/hooks/Roles/useHasAccess';
 import { useFileDownload } from '~/data-provider';
 import { useCodeBlockContext } from '~/Providers';
@@ -30,10 +33,12 @@ export const code: React.ElementType = memo(function MarkdownCode({
   const lang = match && match[1];
   const isMath = lang === 'math';
   const isMermaid = lang === 'mermaid';
+  // ERPRAY-PATCH: chart fences from the connector.
+  const isVegaLite = lang === 'vega-lite';
   const isSingleLine = typeof children === 'string' && children.split('\n').length === 1;
 
   const { getNextIndex, resetCounter } = useCodeBlockContext();
-  const blockIndex = useRef(getNextIndex(isMath || isMermaid || isSingleLine)).current;
+  const blockIndex = useRef(getNextIndex(isMath || isMermaid || isVegaLite || isSingleLine)).current;
 
   useEffect(() => {
     resetCounter();
@@ -48,6 +53,10 @@ export const code: React.ElementType = memo(function MarkdownCode({
         <Mermaid id={`mermaid-${blockIndex}`}>{content}</Mermaid>
       </MermaidErrorBoundary>
     );
+  } else if (isVegaLite) {
+    // ERPRAY-PATCH
+    const content = typeof children === 'string' ? children : String(children);
+    return <VegaLiteChart>{content}</VegaLiteChart>;
   } else if (isSingleLine) {
     return (
       <code onDoubleClick={handleDoubleClick} className={className}>
@@ -79,6 +88,10 @@ export const codeNoExecution: React.ElementType = memo(function MarkdownCodeNoEx
   } else if (lang === 'mermaid') {
     const content = typeof children === 'string' ? children : String(children);
     return <Mermaid>{content}</Mermaid>;
+  } else if (lang === 'vega-lite') {
+    // ERPRAY-PATCH
+    const content = typeof children === 'string' ? children : String(children);
+    return <VegaLiteChart>{content}</VegaLiteChart>;
   } else if (typeof children === 'string' && children.split('\n').length === 1) {
     return (
       <code onDoubleClick={handleDoubleClick} className={className}>
