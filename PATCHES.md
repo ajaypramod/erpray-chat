@@ -172,6 +172,40 @@ All three: **BSD-3-Clause** — permissive, no license concern.
 
 ---
 
+## The 5 role personas as real LibreChat Agents
+
+`config/seed-role-agents.js` — run once after the first admin account exists
+(`node config/seed-role-agents.js --owner=<admin-email>`), idempotent on
+re-run. Ports the actual CONTENT of SyteRay's 5 role personas
+(`openwebui/functions/syteray_role_agents.py` — Controller, Buyer, Planner,
+DBA, Sales), re-grounded in ERPray's own NetSuite metric/action catalog
+(Controller, Sales Ops, Purchasing, Warehouse, Collections), NOT the
+mechanism — SyteRay's version was a whole separate Python routing layer
+(an OpenWebUI "pipe") reimplementing something a native LibreChat Agent
+already does. Every persona points at the SAME connector model
+(`erpray-balanced`); the difference lives entirely in `instructions`.
+
+**A real gap found only by actually clicking through it, not by reading the
+schema**: `modelSpecs.enforce: true` (ERPray's own "one curated experience,
+hide raw provider pickers" design) locks the picker to EXACTLY the static
+`modelSpecs.list` in `librechat.yaml` — an Agent seeded into MongoDB with a
+name and instructions is invisible to every user unless it ALSO has a
+`modelSpecs` entry with `preset: {endpoint: 'agents', agent_id: '<id>'}`.
+That entry needs a FIXED agent id to reference from static YAML, which is why
+the seed script uses fixed ids (`agent_erpray_controller` etc.) instead of
+LibreChat's normal random `nanoid()` — the two files must agree on the exact
+same ids. `deploy/librechat.yaml` (erpray-app) has the 5 matching entries.
+
+Also required, and easy to miss: `grantPermission` with `PrincipalType.PUBLIC`
+(not just the owning admin) plus `addAgentIdsToProject` on LibreChat's GLOBAL
+project — without both, the agent exists and even appears in the picker's
+config but a second, unrelated user account cannot actually use it. Verified
+live: registered a brand-new, unrelated user, confirmed all 5 personas (plus
+ERPray and Deep Research) were visible and pickable, then asked "ERPray ·
+Controller" a real question and confirmed it round-tripped to the connector
+and rendered the full answer (chart, grid artifact, chips) — not just that
+the picker rendered a name.
+
 ## Not yet done (see erpray-app/RESUME.md for the full remaining list)
 
-- The 5 role personas as LibreChat Agents; the skill library as Prompts
+- The skill library as LibreChat Prompts
