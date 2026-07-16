@@ -206,6 +206,47 @@ Controller" a real question and confirmed it round-tripped to the connector
 and rendered the full answer (chart, grid artifact, chips) — not just that
 the picker rendered a name.
 
+## The skill library as LibreChat Prompts
+
+`config/seed-starter-prompts.js` — run once after the first admin account
+exists (`node config/seed-starter-prompts.js --owner=<admin-email>`),
+idempotent on re-run. SyteRay's "skill library"
+(`packages/connector/src/chat/skillStore.ts`) was a generic, no-code,
+user-built custom-agent mechanism (its own Postgres table: name + system
+prompt + tool allow-list + example prompts) — there was never a fixed
+catalog of skill CONTENT to port the way the 5 role personas had 5 concrete
+personas; it was a MECHANISM, and LibreChat's native Prompts feature (saved,
+shareable, `{{variable}}`-parameterized templates) already replaces that
+mechanism directly. Reimplementing skillStore's table would be building a
+second, worse copy of a feature LibreChat ships out of the box. Confirmed by
+grep across SyteRay's own repo: no `DEFAULT_SKILLS`/`seedSkill`/hardcoded
+example content exists anywhere, only the store implementation.
+
+What DOES port is the underlying idea — reusable, parameterized business
+"recipes" — as 6 starter Prompts grounded in ERPray's own domain: Customer
+360 (`{{customer}}`), Weekly AR digest, Vendor risk check (`{{vendor}}`),
+Late order chase list, Margin check (`{{period}}`), New customer follow-up
+(`{{days}}`).
+
+**Verified live, the same way as the role agents**: registered a brand-new,
+completely unrelated user, and confirmed via the real
+`GET /api/prompts/groups` endpoint (not just a direct DB read) that all 6
+prompts are visible with their `{{variable}}` placeholders intact. Unlike
+Agents, there is **no** `modelSpecs.enforce` gap here — Prompts are
+fetched dynamically through the ACL-aware route
+(`findAccessibleResources` + `findPubliclyAccessibleResources`), not gated
+by a static YAML list, so `grantPermission(PUBLIC, PROMPTGROUP_VIEWER)` +
+`addGroupIdsToProject` on the GLOBAL project was sufficient on its own —
+confirmed by testing rather than assumed, since the Agents gap was exactly
+this kind of thing that only showed up by actually exercising it.
+
+(Minor, unrelated observation made while verifying: `GET /api/prompts/groups`
+throws a 500 if called with neither `pageSize` nor `limit` in the query
+string — `actualLimit` stays `undefined` and a later `.toString()` on it
+throws. The real frontend always sends `pageSize`, so this never surfaces
+in normal use; noting it here rather than "fixing" a code path we don't own
+and haven't fully characterized.)
+
 ## Not yet done (see erpray-app/RESUME.md for the full remaining list)
 
-- The skill library as LibreChat Prompts
+- (nothing outstanding from the original skill-library/persona/Deep-Research list — see erpray-app/BLOCKERS.md for what's left overall)
